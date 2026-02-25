@@ -1,0 +1,12 @@
+{
+  "name": "matty-plugin",
+  "version": "1.0.0",
+  "description": "Claude skills plugin with sample commands and skills",
+  "author": {
+    "name": "Matty Stratton",
+    "email": "matt@mattstratton.com"
+  },
+  "license": "MIT",
+  "keywords": ["claude", "skills", "marketplace"],
+  "category": "developer-tools"
+}
