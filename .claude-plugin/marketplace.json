@@ -1,6 +1,18 @@
 {
-  "name": "mattstratton-marketplace",
+  "name": "matty-poc",
+  "owner": {
+    "name": "Matty Stratton",
+    "email": "matt@mattstratton.com"
+  },
   "plugins": [
-    { "id": "matty-plugin", "source": "./plugins/matty-plugin" }
+    {
+      "name": "matty-plugin",
+      "source": "../plugins/matty-plugin",
+      "description": "test plugin",
+      "version": "2.1.0",
+      "author": {
+        "name": "Matty Stratton"
+      }
+    }
   ]
 }
