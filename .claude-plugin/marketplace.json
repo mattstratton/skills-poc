@@ -1,0 +1,6 @@
+{
+  "name": "mattstratton-marketplace",
+  "plugins": [
+    { "id": "matty-plugin", "source": "./plugins/matty-plugin" }
+  ]
+}
