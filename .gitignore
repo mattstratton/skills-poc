@@ -1,1 +1,6 @@
+.DS_Store
 example/marketing-skills
+
+# Drive doc drafts — these contain proprietary content and should NOT be committed.
+# They exist locally as copy-paste sources for creating Google Drive docs.
+_drive-drafts/

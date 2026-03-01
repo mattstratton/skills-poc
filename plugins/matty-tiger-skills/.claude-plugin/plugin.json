@@ -1,0 +1,11 @@
+{
+  "name": "matty-tiger-skills",
+  "version": "2.0.0",
+  "description": "Matty's TigerData content and marketing skills — weekly roundups, LinkedIn article drafts, and brand voice writing",
+  "author": {
+    "name": "Matty Stratton",
+    "email": "matt@mattstratton.com"
+  },
+  "license": "MIT",
+  "keywords": ["claude", "skills", "tigerdata", "marketing", "content"]
+}

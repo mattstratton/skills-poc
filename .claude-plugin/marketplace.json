@@ -5,9 +5,9 @@
   },
   "plugins": [
     {
-      "name": "matty-plugin",
-      "source": "./plugins/matty-plugin",
-      "description": "test plugin"
+      "name": "matty-tiger-skills",
+      "source": "./plugins/matty-tiger-skills",
+      "description": "Matty's TigerData content and marketing skills — weekly roundups, LinkedIn article drafts, and brand voice writing"
     }
   ]
 }
