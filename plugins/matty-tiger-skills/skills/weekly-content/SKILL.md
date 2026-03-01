@@ -14,6 +14,7 @@ compatibility: >
   enrichment with theme and series metadata).
 references:
   - sales-stage-framework
+  - customer-journey-map
   - brand-voice-guide
   - terms-glossary
 ---
@@ -42,14 +43,18 @@ Read `config.json` from the plugin root to get:
 ### Reference docs
 
 Fetch from Google Drive using the process in `REFERENCES.md`:
-- **`sales-stage-framework`** (required for the #sales-team post) — contains the customer
-  journey stages, BDR paths, and persona mapping used to write the "How to use" guidance.
+- **`sales-stage-framework`** (required for the #sales-team post) — contains the sales
+  stages, BDR paths, and persona mapping used to write the "How to use" guidance.
+- **`customer-journey-map`** (required for the #sales-team post) — maps the customer's
+  buying journey to Tiger Data's sales stages, including context questions (gates) at each
+  stage, disqualification criteria, team ownership, and the customer's internal framing.
+  Use this to map content to the specific customer question it helps answer.
 - **`brand-voice-guide`** (recommended) — tone and style rules for all TigerData content.
 - **`terms-glossary`** (recommended) — correct product names, capitalization, terminology.
 
-If the sales-stage-framework doc can't be loaded, tell the user and ask how to proceed.
-The #sales-team post depends on it for the stage-mapped guidance — without it, that section
-will be generic and much less useful.
+If either the sales-stage-framework or customer-journey-map docs can't be loaded, tell the
+user and ask how to proceed. The #sales-team post depends on both for the stage-mapped and
+journey-mapped guidance — without them, those sections will be generic and much less useful.
 
 ---
 
@@ -213,10 +218,16 @@ reader takes away.]
 **Snippet:** _"[A pull quote from the content — pick something punchy that a rep could actually
 say to a prospect to frame the problem. Under 25 words.]"_
 
+**Customer journey:** [Which customer question does this content help answer? Use the
+customer-journey-map reference doc. Frame it from the customer's perspective, e.g. "Helps
+the customer recognize they have a timeseries ingest bottleneck" (Stage 0) or "Gives the
+customer evidence that Tiger Data can fix their Postgres bottleneck" (Stage 1).]
+
 **How to use:**
 • **Stage N ([Name]):** [2-4 sentences of stage-mapped guidance using the sales-stage-framework
-reference doc. Be specific — what kind of prospect, what moment in the conversation, what it
-helps them do. Don't just say "good for Stage 1" — say why and how.]
+and customer-journey-map reference docs. Be specific — what kind of prospect, what moment in
+the conversation, what gate question it helps answer, and what it helps them do. Don't just
+say "good for Stage 1" — say why and how.]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -224,8 +235,9 @@ helps them do. Don't just say "good for Stage 1" — say why and how.]
 ```
 
 Rules:
-- The "How to use" section is the most important part of the sales-team post. Spend the most effort here.
+- The "Customer journey" and "How to use" sections are the most important parts of the sales-team post. Spend the most effort here.
 - Only map to stages that genuinely apply — don't force all stages for every piece
+- Frame the customer journey mapping from the customer's perspective using the gate questions from the customer-journey-map doc
 - Reference BDR Paths where relevant for top-of-funnel content (from the stage framework doc)
 - Reference prospect personas where the content is persona-specific (from the stage framework doc)
 - If pieces are a series, note how they sequence — which to share first, which is the deeper follow-up

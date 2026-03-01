@@ -16,7 +16,7 @@ These already exist for the brand-voice-writer skill:
 - `educational-content-guide` — guidance for educational content
 - `white-paper-guide` — guidance for white papers
 
-### New root-level doc needed:
+### New root-level docs needed:
 
 **`sales-stage-framework`** — Used by: `weekly-content`
 
@@ -33,6 +33,20 @@ Contents to include:
 
 Source material: the "Stage Reference" section from the original weekly-content skill
 (the full text was in the uploaded SKILL.md, lines 176-219).
+
+**`customer-journey-map`** — Used by: `weekly-content`
+
+Contents to include:
+- Stage 00 (Discovery) through Stage 04 (Closed Won — Implementation)
+- For each stage: the customer's question (their internal framing), context questions
+  (gate criteria), gate decision flow (advance / disqualify / nurture), team ownership
+  splits, and content mapping guidance
+- Customer questions: "Do I have a timeseries ingest/read bottleneck?" (Stage 0),
+  "Can anyone fix Postgres' bottleneck for timeseries data at scale?" (Stage 1),
+  "Can they prove it?" (Stage 2), "How do I make this a reality?" (Stage 3),
+  "Let's migrate!" (Stage 4)
+
+Source material: "Updated Customer and Sales Journey.pdf" (the flowchart PDF).
 
 ---
 
@@ -69,6 +83,7 @@ skill (the uploaded SKILL.md, lines 192-208).
 ## Checklist
 
 - [ ] `sales-stage-framework` created at root level
+- [ ] `customer-journey-map` created at root level
 - [ ] `matty` subfolder created
 - [ ] `matty/topic-buckets` created in subfolder
 - [ ] `matty/fallback-voice-matty` created in subfolder
