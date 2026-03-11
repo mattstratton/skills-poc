@@ -1,4 +1,10 @@
 {
   "asana_project_id": "1213144717160576",
-  "slack_user_id": "U09EE7ZKCN7"
+  "slack_user_id": "U09EE7ZKCN7",
+  "slack_channels": [
+    "#team-devrel-private",
+    "#content-flywheel",
+    "#marketing-leadership",
+    "#marketing-private"
+  ]
 }
