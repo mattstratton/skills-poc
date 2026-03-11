@@ -220,6 +220,19 @@ Present everything in a single, scannable briefing. Structure it as:
 Keep the tone direct and useful — this is a morning briefing, not a report. Think "chief
 of staff handing you a one-pager" not "quarterly business review."
 
+### Offer to create meeting notes
+
+After delivering the briefing, if there are real meetings on today's calendar, ask:
+
+> "Want me to create meeting notes for today's meetings?"
+
+If the user says yes, hand off to the **meeting-notes** skill. The calendar data already
+fetched in Step 3 can be reused — pass the events to the meeting-notes flow starting at
+its Step 2 (filter events). This avoids a redundant calendar API call.
+
+If the user says no or doesn't respond, move on. This is a convenience offer, not a
+required step.
+
 ---
 
 ## Edge Cases
