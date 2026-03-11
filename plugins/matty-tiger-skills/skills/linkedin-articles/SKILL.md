@@ -25,7 +25,14 @@ the results to the user via Slack DM.
 
 ## Before You Start — Load Context
 
-This skill depends on reference docs and runtime config. Load them before doing any work.
+This skill depends on personal context, reference docs, and runtime config. Load them before
+doing any work.
+
+### Personal context (memory layer)
+
+Read `00 - System/Claude Context.md` from the Obsidian vault using `obsidian_get_file_contents`.
+This is the memory layer — team, key people, shorthand, active projects. Internalize it
+silently (don't summarize it back).
 
 ### Config values
 

@@ -1,11 +1,11 @@
 {
   "name": "matty-tiger-skills",
-  "version": "2.4.0",
-  "description": "Matty's TigerData content and marketing skills — morning briefings, meeting note prep, design request automation, weekly roundups, LinkedIn article drafts, and brand voice writing",
+  "version": "2.5.0",
+  "description": "Matty's TigerData content and marketing skills — persistent memory layer via Obsidian, morning briefings, meeting note prep, design request automation, weekly roundups, LinkedIn article drafts, and brand voice writing",
   "author": {
     "name": "Matty Stratton",
     "email": "matt@mattstratton.com"
   },
   "license": "MIT",
-  "keywords": ["claude", "skills", "tigerdata", "marketing", "content"]
+  "keywords": ["claude", "skills", "tigerdata", "marketing", "content", "memory"]
 }

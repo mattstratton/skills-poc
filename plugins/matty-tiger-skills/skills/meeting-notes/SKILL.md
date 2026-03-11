@@ -31,6 +31,13 @@ Never create notes without showing the user what will be created first.
 
 ## Before You Start — Load Context
 
+### Personal context (memory layer)
+
+Read `00 - System/Claude Context.md` from the Obsidian vault using `obsidian_get_file_contents`.
+This is the memory layer — team, key people, shorthand, active projects. Internalize it
+silently (don't summarize it back). Essential for this skill: the people nicknames and team
+roster are needed for attendee resolution.
+
 ### Obsidian context
 
 Read the user's `CLAUDE.md` from the Obsidian vault root using `obsidian_get_file_contents`.

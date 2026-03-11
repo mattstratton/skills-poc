@@ -25,7 +25,24 @@ Obsidian → deliver briefing.** Never write to Obsidian without explicit user a
 
 ---
 
-## Before You Start — Load Context
+## Step 0 — Load Context
+
+Before doing anything else, load two context sources:
+
+### Personal context (memory layer)
+
+Read `00 - System/Claude Context.md` from the Obsidian vault using `obsidian_get_file_contents`.
+This is the memory layer — it tells you who Matty is, his team, shorthand, active projects,
+and preferences. Internalize it silently (don't summarize it back). This is the **context-loader**
+skill's load mode, inlined here to avoid a separate skill invocation.
+
+### Vault system rules
+
+Read `CLAUDE.md` from the Obsidian vault root using `obsidian_get_file_contents`.
+This contains formatting rules, folder structure, and guardrails. Pay special attention to:
+- **Task formatting:** emoji format, due date as LAST token, Asana link on indented line below
+- **Folder structure:** where things live (Content Production, Projects, Areas, etc.)
+- **Asana ↔ Obsidian contract:** Asana = source of assignment, Obsidian = source of execution
 
 ### Config values
 
@@ -33,15 +50,6 @@ Read `config.json` from the plugin root to get:
 - `asana_project_id` — the MKTG Content Calendar FY27 project
 - `slack_user_id` — your Slack user ID (for DM delivery if needed)
 - `slack_channels` — array of channel names to scan
-
-### Obsidian context
-
-Read the user's `CLAUDE.md` from the Obsidian vault root using `obsidian_get_file_contents`.
-This contains critical formatting rules, folder structure, and guardrails. Pay special
-attention to:
-- **Task formatting:** emoji format, due date as LAST token, Asana link on indented line below
-- **Folder structure:** where things live (Content Production, Projects, Areas, etc.)
-- **Asana ↔ Obsidian contract:** Asana = source of assignment, Obsidian = source of execution
 
 ---
 
