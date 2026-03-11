@@ -14,8 +14,6 @@ compatibility: >
   Requires Tiger Den (for voice profile) and Slack (for output delivery).
   Optionally uses web search for article discovery.
 references:
-  - matty/topic-buckets
-  - matty/fallback-voice-matty
   - brand-voice-guide
 ---
 
@@ -36,14 +34,18 @@ Read `config.json` from the plugin root to get:
 
 ### Reference docs
 
-Fetch from Google Drive using the process in `REFERENCES.md`:
-- **`matty/topic-buckets`** (required) — defines the topic buckets to search across,
-  including search guidance, competitive framing, and what qualifies as a good article
-  for each bucket.
-- **`matty/fallback-voice-matty`** (fallback only) — voice profile used when Tiger Den
-  is unavailable. Only fetch this if Tiger Den can't be reached.
+**Remote references** — fetch from Tiger Den using the process in `REFERENCES.md`:
 - **`brand-voice-guide`** (recommended) — general tone and style rules, banned words,
   and formatting conventions.
+
+Fetch with: `get_marketing_context(slugs: ["brand-voice-guide"])`
+
+**Local references** — read directly from the `references/` directory in this skill:
+- **`references/topic-buckets.md`** (required) — defines the topic buckets to search across,
+  including search guidance, competitive framing, and what qualifies as a good article
+  for each bucket.
+- **`references/fallback-voice-matty.md`** (fallback only) — voice profile used when Tiger Den
+  is unavailable. Only read this if Tiger Den can't be reached.
 
 ---
 
@@ -52,7 +54,7 @@ Fetch from Google Drive using the process in `REFERENCES.md`:
 The user can pass optional arguments after `/linkedin-articles`. These modify the workflow:
 
 - **Bucket names** — Only search specific buckets. The available bucket names are defined
-  in the `matty/topic-buckets` reference doc. Pass the bucket slug (e.g. `iot`, `postgres`,
+  in the local `references/topic-buckets.md` file. Pass the bucket slug (e.g. `iot`, `postgres`,
   `competitive`) to restrict the search.
 - **`top1`** — Run the full search and scoring, but only draft posts for the single highest-scored article.
 - **`noslack`** — Skip the Slack DM step. Output everything in the Cowork session instead.
@@ -73,9 +75,9 @@ If the user's voice profile can't be found by name, list the available voice pro
 Den and let the user pick one. Include a final option like "None of these — use the default voice"
 which falls back to the `matty/fallback-voice-matty` reference doc.
 
-If Tiger Den is completely unavailable (connector error, not connected, etc.), fetch the
-`matty/fallback-voice-matty` reference doc from Drive and tell the user you're using it so
-they know. If Drive is also unavailable, use a generic TigerData developer voice (direct,
+If Tiger Den is completely unavailable (connector error, not connected, etc.), read the
+local `references/fallback-voice-matty.md` file and tell the user you're using it so
+they know. If that file is also missing, use a generic TigerData developer voice (direct,
 no fluff, no corporate speak) and note the degradation.
 
 ### Step 2 — Check Previously Shared Articles
@@ -94,7 +96,7 @@ and note it in the output so the user knows repeats are possible.
 ### Step 3 — Search for Articles
 
 Search the web for **4-5 articles published in the last 7 days** across the topic buckets
-defined in the `matty/topic-buckets` reference doc.
+defined in the local `references/topic-buckets.md` file.
 
 Aim for at least one article per bucket if possible, but quality beats coverage.
 

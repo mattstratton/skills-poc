@@ -1,117 +1,41 @@
-# How to Fetch Reference Docs from Google Drive
+# How to Fetch Reference Docs
 
-Skills in this plugin declare which reference docs they need in their frontmatter. The docs
-themselves live in a shared Google Drive folder — not bundled in the plugin. This file
-explains how to fetch them.
+Skills in this plugin declare which reference docs they need in their frontmatter. The docs themselves live outside the plugin. This file explains how to fetch them.
 
-## Reference path format
+## Two kinds of reference docs
 
-Reference names in skill frontmatter can be:
+**Remote references** are proprietary docs stored in Tiger Den (brand voice guide, sales stage framework, customer journey map, etc.). These are fetched at runtime using Tiger Den MCP tools. Every skill that needs them declares their slugs in frontmatter.
 
-- **Simple names** — e.g. `brand-voice-guide` — a doc at the root of the shared references folder
-- **Paths with subfolders** — e.g. `matty/topic-buckets` — a doc inside a subfolder
+**Local references** are non-proprietary docs bundled in a skill's `references/` directory (topic bucket definitions, fallback voice profiles, formatting examples, etc.). These are committed to the repo because they contain no confidential content. Skills read them directly from disk — no MCP call needed.
 
-When a reference has a `/`, treat each segment before the last as a subfolder to traverse.
-The last segment is the document name.
+This file covers remote references only. If a skill has a `references/` directory, it reads those files directly.
 
-## Step 1: Get the folder ID
+## Fetching from Tiger Den
 
-Read `config.json` from the plugin root. It contains the shared Drive folder ID:
+Tiger Den is the source for all remote reference docs. Use the MCP tools described below.
 
-```json
-{
-  "references_folder_id": "1DUPUkDyG8bkQgoWWI4kvoLTyMk_sT1n2"
-}
+**Fetch all declared references in one call (preferred):**
+
+```
+get_marketing_context(slugs: ["sales-stage-framework", "customer-journey-map", "brand-voice-guide"])
 ```
 
-`config.json` also contains other runtime values used by skills (like `asana_project_id`
-and `slack_user_id`). Each skill documents which config values it needs.
+The slugs match the reference names in the skill's frontmatter. Pass all of them as an array and you get everything in a single round-trip.
 
-## Step 2: Detect your runtime and fetch
+**If you only need one doc**, use `get_marketing_reference` instead:
 
-### Cowork (Google Drive connector)
+```
+get_marketing_reference(slug: "brand-voice-guide")
+```
 
-If the `google_drive_search` tool is available, you're in Cowork. To fetch a reference doc:
-
-**Simple reference** (no `/` in the name):
-
-1. Search for the doc by name within the shared folder:
-   ```
-   google_drive_search(api_query: "name = '<doc-name>' and '<folder_id>' in parents")
-   ```
-2. Fetch the full content:
-   ```
-   google_drive_fetch(document_ids: ["<uri-from-search>"])
-   ```
-
-**Path reference** (contains `/`, e.g. `matty/topic-buckets`):
-
-1. Split the path on `/`. The segments before the last are folders; the last is the doc name.
-2. Starting from the root references folder, resolve each folder segment:
-   ```
-   google_drive_search(api_query: "name = 'matty' and '<root_folder_id>' in parents and mimeType = 'application/vnd.google-apps.folder'")
-   ```
-3. Use the returned folder ID to search for the next segment, repeating until you reach the
-   final segment (the doc name):
-   ```
-   google_drive_search(api_query: "name = 'topic-buckets' and '<matty_folder_id>' in parents")
-   ```
-4. Fetch the doc content:
-   ```
-   google_drive_fetch(document_ids: ["<uri-from-search>"])
-   ```
-
-**Performance note:** Each folder level costs one extra Drive API call. In practice this is
-one or two extra calls at most and is negligible. If a skill needs multiple docs from the
-same subfolder, resolve the subfolder once and reuse the folder ID for all doc lookups.
-
-You can batch multiple fetches into a single `google_drive_fetch` call by passing multiple
-document IDs at once. When a skill needs several reference docs, search for all of them
-first, collect the URIs, then fetch them in one call.
-
-**If the Google Drive connector isn't available:** Tell the user to enable the Google Drive
-connector in Cowork settings (Settings → Connectors → Google Drive). It's installed by
-default for all TigerData teammates.
-
-### Claude Code (gdrive CLI)
-
-If the `google_drive_search` tool is NOT available, you're in Claude Code. Use the `gdrive` CLI:
-
-**Simple reference:**
-
-1. List files in the shared folder:
-   ```bash
-   gdrive files list --parent <folder_id>
-   ```
-2. Find the file ID for the doc you need from the output, then download it:
-   ```bash
-   gdrive files download --id <file-id> --stdout
-   ```
-
-**Path reference:**
-
-1. List files in the root folder and find the subfolder:
-   ```bash
-   gdrive files list --parent <root_folder_id>
-   ```
-2. Find the subfolder ID from the output, then list its contents:
-   ```bash
-   gdrive files list --parent <subfolder_id>
-   ```
-3. Find the doc ID and download:
-   ```bash
-   gdrive files download --id <file-id> --stdout
-   ```
-
-**If `gdrive` is not installed:** Tell the user to install it (`brew install gdrive`) and
-authenticate (`gdrive auth`) using their Google Workspace account. This is a one-time setup.
+**If you're not sure what's available**, use `list_marketing_references` to see all available reference docs and their slugs.
 
 ## Error handling
 
-If a Drive fetch fails (doc not found, permissions error, network issue), do NOT proceed
-silently. Tell the user which reference doc couldn't be loaded and why. The content quality
-depends on having the right context — better to surface the problem than write without it.
+If Tiger Den tools are not available or return an error, do NOT proceed silently and do NOT attempt to write content without the reference docs. Tell the user what happened and how to fix it:
 
-If a subfolder can't be resolved (no folder with that name in the parent), report the full
-path that failed, e.g.: "Could not find subfolder 'matty' in the references folder. Check
-that the subfolder exists in Google Drive."
+- **Tiger Den not available (tools missing):** "This skill needs Tiger Den to load reference docs, but the Tiger Den MCP server isn't connected. Run `/setup` to get it configured — it takes about two minutes."
+- **Tiger Den connection error (tools exist but call fails):** "Tiger Den returned an error. Check that the MCP server is running and your API key is valid. Run `/doctor` to diagnose the issue."
+- **Specific doc not found:** "Could not find '[slug]' in Tiger Den. Check that it exists at tiger-den.vercel.app. Available docs: [call list_marketing_references and show results]."
+
+Reference docs contain the brand voice, positioning, terminology, sales process context, and quality standards that skills depend on. Writing without them produces generic, off-brand output — it's better to surface the error and help the user fix it than to proceed without context.

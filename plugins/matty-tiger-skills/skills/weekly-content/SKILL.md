@@ -42,7 +42,7 @@ Read `config.json` from the plugin root to get:
 
 ### Reference docs
 
-Fetch from Google Drive using the process in `REFERENCES.md`:
+Fetch from Tiger Den using the process in `REFERENCES.md`:
 - **`sales-stage-framework`** (required for the #sales-team post) — contains the sales
   stages, BDR paths, and persona mapping used to write the "How to use" guidance.
 - **`customer-journey-map`** (required for the #sales-team post) — maps the customer's
@@ -51,6 +51,11 @@ Fetch from Google Drive using the process in `REFERENCES.md`:
   Use this to map content to the specific customer question it helps answer.
 - **`brand-voice-guide`** (recommended) — tone and style rules for all TigerData content.
 - **`terms-glossary`** (recommended) — correct product names, capitalization, terminology.
+
+Fetch all four in one call:
+```
+get_marketing_context(slugs: ["sales-stage-framework", "customer-journey-map", "brand-voice-guide", "terms-glossary"])
+```
 
 If either the sales-stage-framework or customer-journey-map docs can't be loaded, tell the
 user and ask how to proceed. The #sales-team post depends on both for the stage-mapped and
