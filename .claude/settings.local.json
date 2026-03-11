@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -r \"history\\\\|state\\\\|track\\\\|previous\\\\|cache\\\\|memory\\\\|recommend\" /Users/mattstratton/src/github.com/mattstratton/skills-poc/plugins/matty-tiger-skills/ --include=\"*.md\" --include=\"*.json\" 2>/dev/null | head -40)",
+      "mcp__plugin_context-mode_context-mode__execute_file"
+    ]
+  }
+}

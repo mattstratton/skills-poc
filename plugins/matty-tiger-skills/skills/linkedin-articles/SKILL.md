@@ -78,7 +78,20 @@ If Tiger Den is completely unavailable (connector error, not connected, etc.), f
 they know. If Drive is also unavailable, use a generic TigerData developer voice (direct,
 no fluff, no corporate speak) and note the degradation.
 
-### Step 2 — Search for Articles
+### Step 2 — Check Previously Shared Articles
+
+Before searching for new articles, read back recent Slack DMs sent to the user's `slack_user_id`
+to see what articles have already been shared. Use the Slack connector to read the DM conversation
+and extract all URLs from recent messages (look back at least 30 days of messages).
+
+Build a dedupe list of previously shared URLs. You'll use this list in Step 3 to filter out
+repeats. Normalize URLs before comparing (strip trailing slashes, query params like UTM tags,
+and `www.` prefixes) so the same article linked slightly differently still gets caught.
+
+If the Slack read fails (connector error, no DM history, etc.), continue without deduplication
+and note it in the output so the user knows repeats are possible.
+
+### Step 3 — Search for Articles
 
 Search the web for **4-5 articles published in the last 7 days** across the topic buckets
 defined in the `matty/topic-buckets` reference doc.
@@ -93,12 +106,18 @@ they're substantive. Avoid vendor marketing blogs unless they contain real techn
 **Search quality bar**: Prioritize articles with real technical substance or genuine practitioner
 perspective. Skip PR fluff, press releases, and anything that reads like it was written for SEO.
 
+**Deduplicate**: After gathering search results, compare every candidate URL against the dedupe
+list from Step 2. Drop any article that was previously shared. If an article's URL is a slight
+variant of a previously shared one (same domain + path, different query params), drop it too.
+If deduplication removes most or all results for a bucket, run one more targeted search for
+that bucket before giving up.
+
 **Dry weeks**: Some buckets won't always have fresh content. That's fine. Don't force bad articles
 into the results just to fill a bucket. If a bucket has nothing worth sharing this week, say so
 in the output and move on. Three strong articles from two buckets beats five mediocre ones
 spread across three.
 
-### Step 3 — Score and Rank Articles
+### Step 4 — Score and Rank Articles
 
 For each article, assess **commentary value** — how much genuine perspective can the user add
 beyond "here's an interesting article"? Score 1-5:
@@ -111,7 +130,7 @@ beyond "here's an interesting article"? Score 1-5:
 
 Drop anything scored 1-2. Present remaining articles ranked highest to lowest.
 
-### Step 4 — Draft LinkedIn Posts
+### Step 5 — Draft LinkedIn Posts
 
 For each article (score 3+), write two post variants using the user's voice profile:
 
@@ -150,7 +169,7 @@ the end. If no hashtags feel natural for a particular post, skip them rather tha
   the output so the user can decide whether to rework the hook. The user may have recently
   published something with a similar angle.
 
-### Step 5 — Send to Slack
+### Step 6 — Send to Slack
 
 Use the `slack_user_id` from config.json.
 
