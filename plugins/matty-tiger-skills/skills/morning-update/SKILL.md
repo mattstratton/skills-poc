@@ -140,6 +140,14 @@ For approved changes, use `obsidian_patch_content` to update `03 - Areas/Content
   Video, External, Anchor Essay, Visual Explainer, Short Post). If unclear, omit the prefix
   and note it to the user.
 
+**Personal tasks from Slack:**
+If the Slack scan (Step 2) surfaces action items that become tasks, and those tasks are
+personal in nature (not work-related), add `#personal` to the task line:
+```markdown
+- [ ] Schedule dentist appointment #personal 📅 2026-03-20
+```
+This ensures the Dashboard and daily note templates correctly categorize them.
+
 If `obsidian_patch_content` fails (it can be finicky with complex edits), fall back to
 providing paste-ready markdown text that the user can add manually. Don't silently fail.
 
@@ -189,6 +197,18 @@ Keep it tight. The goal is "here's what you missed that matters" — not a trans
 
 ## Step 3 — Today's Briefing
 
+### In Progress tasks
+
+Before anything else, check Obsidian for any tasks currently marked `[/]` (in-progress
+status from Task Genius). Use `obsidian_simple_search` with query `[/]` or scan the
+Content Production data already loaded. Surface these first — they represent work already
+started and should be top of mind. Present as: "You have N tasks in progress: ..."
+
+### Focus tasks
+
+Check for any tasks tagged `#focus` in Obsidian. These are intentionally capped at 3 and
+represent the user's near-term priorities. Call these out separately if present.
+
 ### Calendar
 
 Use `gcal_list_events` to pull today's calendar. Present a clean list of meetings with
@@ -212,6 +232,13 @@ that looks tight (due tomorrow with no draft link, multiple items due the same d
 
 Surface any tasks past their due date that are still incomplete. These need attention.
 
+### Work vs Personal labeling
+
+When presenting tasks in any of the above sections, note whether each is **work** or
+**personal**. Tasks from `03 - Areas/Home.md` or tagged `#personal` are personal;
+everything else is work. A simple inline label like "(personal)" is enough — don't
+over-format it.
+
 ---
 
 ## Step 4 — Deliver the Briefing
@@ -219,11 +246,12 @@ Surface any tasks past their due date that are still incomplete. These need atte
 Present everything in a single, scannable briefing. Structure it as:
 
 1. **Task Sync Summary** — What was synced, what conflicts were found, what was updated
-2. **Slack Highlights** — Actionable items from yesterday, grouped by channel
-3. **Today's Schedule** — Calendar overview
-4. **Due Today** — Tasks due today
-5. **Due This Week** — Upcoming deadlines
-6. **Overdue** — Past-due items needing attention
+2. **In Progress** — Tasks currently marked `[/]` that are already underway
+3. **Slack Highlights** — Actionable items from yesterday, grouped by channel
+4. **Today's Schedule** — Calendar overview
+5. **Due Today** — Tasks due today
+6. **Due This Week** — Upcoming deadlines
+7. **Overdue** — Past-due items needing attention
 
 Keep the tone direct and useful — this is a morning briefing, not a report. Think "chief
 of staff handing you a one-pager" not "quarterly business review."
