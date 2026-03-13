@@ -285,7 +285,7 @@ summary: [one-liner summary — see below]
 attendees:
   - Matty
   - Corey Fitz
-  - Doug Pagnutti (doug@tigerdata.com)
+  - Doug Pagnutti
 ---
 
 # Meeting Name
@@ -309,14 +309,19 @@ Any notes for the meeting
 
 ### Attendee formatting in YAML
 
-This is the most important part for Dataview linking to work correctly.
+This is the most important part for Dataview linking to work correctly. The People
+page Dataview query is `WHERE contains(attendees, this.file.name)`, so the attendee
+value MUST contain the exact People page filename for the link to work.
 
-- **Attendees with People pages:** Use the **exact People page filename** as the
-  attendee entry. This ensures `contains(attendees, this.file.name)` matches.
-  - If you want to also show the email, append it in parentheses AFTER the full name:
-    `Corey Fitz (corey@tigerdata.com)` — this still matches because `contains()` does
-    substring matching and "Corey Fitz" is contained in "Corey Fitz (corey@tigerdata.com)"
-  - For the user, just `Matty` (no email)
+**CRITICAL: Do NOT append emails to attendees who have People pages.** Use ONLY the
+bare name. Emails clutter the YAML and are unnecessary for Dataview matching.
+
+- **Attendees with People pages:** Use **ONLY the People page filename** — no email,
+  no parenthetical, no extra text. Just the bare name exactly as it appears in the
+  `05 - People/` directory (minus the `.md` extension).
+  - `Corey Fitz` ✅ (matches `05 - People/Corey Fitz.md`)
+  - `Corey Fitz (corey@tigerdata.com)` ❌ WRONG — do not do this
+  - For the user, just `Matty` (no email needed)
 
 - **Attendees WITHOUT People pages (user declined to create):** Use the display name
   and email: `Charishma Makineni (cmakinen@amazon.com)`. If the user later creates a
