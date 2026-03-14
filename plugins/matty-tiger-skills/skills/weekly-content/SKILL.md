@@ -49,7 +49,11 @@ Read `config.json` from the plugin root to get:
 
 ### Reference docs
 
-Fetch from Tiger Den using the process in `REFERENCES.md`:
+**First, check Tiger Den availability** using the process in `REFERENCES.md`: call
+`list_voice_profiles()` (match by suffix — in Cowork, the tool has a UUID prefix). If it
+returns results, Tiger Den is live and you can proceed to fetch reference docs.
+
+Fetch from Tiger Den:
 - **`sales-stage-framework`** (required for the #sales-team post) — contains the sales
   stages, BDR paths, and persona mapping used to write the "How to use" guidance.
 - **`customer-journey-map`** (required for the #sales-team post) — maps the customer's
@@ -63,6 +67,11 @@ Fetch all four in one call:
 ```
 get_marketing_context(slugs: ["sales-stage-framework", "customer-journey-map", "brand-voice-guide", "terms-glossary"])
 ```
+
+**If Tiger Den is not available** (no tool with the `list_voice_profiles` suffix exists in
+the available tools): stop and tell the user. This skill requires Tiger Den for both reference
+docs and content queries — it can't run without it. Direct them to Settings → Connectors →
+Den.tigerdata.com in Cowork, or `/setup` in Claude Code.
 
 If either the sales-stage-framework or customer-journey-map docs can't be loaded, tell the
 user and ask how to proceed. The #sales-team post depends on both for the stage-mapped and
@@ -89,7 +98,8 @@ If no date range is provided, ask for one before proceeding. Don't assume the cu
 
 ## Step 1 — Query Tiger Den for Published Content
 
-Use `tiger_den:list_content` to find content published in the date range. Tiger Den is the
+Use `list_content` to find content published in the date range. (In Cowork, match the tool
+by its suffix — see `REFERENCES.md` for how to identify Tiger Den tools.) Tiger Den is the
 primary source — if content is in Tiger Den with a `publishDate` in range, it was published.
 
 **Query strategy:**
@@ -123,7 +133,7 @@ Use URL similarity, title overlap, and publish date proximity to detect duplicat
 
 ## Step 2 — Get Full Content Text from Tiger Den
 
-For each qualifying item, call `tiger_den:get_content_text` with the item's `id` to
+For each qualifying item, call `get_content_text` with the item's `id` to
 retrieve the full body text. This is what you'll use to write summaries and pull snippets
 for the sales-team post.
 

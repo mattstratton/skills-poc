@@ -72,19 +72,26 @@ If no arguments are provided, run the full workflow across all buckets.
 
 ## Workflow
 
-### Step 1 — Pull Voice Profile from Tiger Den
+### Step 1 — Check Tiger Den & Pull Voice Profile
 
-Before drafting anything, use the Tiger Den connector to retrieve the current user's voice profile.
-Look up the user's name to find their associated profile. This ensures posts always reflect the
-latest version of their voice, not a cached or assumed version.
+First, confirm Tiger Den is connected by calling `list_voice_profiles()`. In Cowork, this
+tool appears with a UUID prefix (e.g. `mcp__2fef16dd-...__list_voice_profiles`) — match it
+by the suffix, not the prefix. See `REFERENCES.md` for the full list of Tiger Den tool suffixes.
 
-If the user's voice profile can't be found by name, list the available voice profiles from Tiger
-Den and let the user pick one. Include a final option like "None of these — use the default voice"
-which falls back to the `matty/fallback-voice-matty` reference doc.
+**If `list_voice_profiles()` succeeds:** Tiger Den is live. Look up the user's name in the
+returned profiles. If found, use that voice profile. If not found by name, show the available
+profiles and let the user pick. Include a final option like "None of these — use the default
+voice" which falls back to the local `references/fallback-voice-matty.md` file.
 
-If Tiger Den is completely unavailable (connector error, not connected, etc.), read the
-local `references/fallback-voice-matty.md` file and tell the user you're using it so
-they know. If that file is also missing, use a generic TigerData developer voice (direct,
+**If no tool with the `list_voice_profiles` suffix exists in the available tools:** Tiger Den
+is not connected. Read the local `references/fallback-voice-matty.md` file and tell the user
+you're using it so they know. Suggest connecting Tiger Den via Settings → Connectors →
+Den.tigerdata.com for the full voice profile experience.
+
+**If the tool exists but the call fails (error/timeout):** Tiger Den is connected but having
+issues. Fall back to `references/fallback-voice-matty.md` and let the user know.
+
+If the fallback file is also missing, use a generic TigerData developer voice (direct,
 no fluff, no corporate speak) and note the degradation.
 
 ### Step 2 — Check Previously Shared Articles

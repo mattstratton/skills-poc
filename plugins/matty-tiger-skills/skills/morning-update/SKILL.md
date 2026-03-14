@@ -2,23 +2,24 @@
 name: morning-update
 platforms: [cowork]
 description: >
-  Daily morning briefing that syncs tasks from Asana to Obsidian, scans yesterday's
-  Slack for action items, and briefs on what's due today and this week. Trigger when
-  the user runs /morning-update or says "morning update", "daily briefing", "start my
-  day", "what's on my plate", or pastes the morning routine prompt from their daily
-  note.
+  Daily morning briefing that syncs tasks from Asana and GitHub to Obsidian, scans
+  yesterday's Slack for action items, and briefs on what's due today and this week.
+  Trigger when the user runs /morning-update or says "morning update", "daily briefing",
+  "start my day", "what's on my plate", or pastes the morning routine prompt from their
+  daily note.
 compatibility: >
-  Requires Asana, Obsidian, Slack, and Google Calendar MCP connectors. All four are
-  needed for the full briefing. If one is missing, run the available parts and tell the
-  user what was skipped.
+  Requires Asana, Obsidian, Slack, Google Calendar, and GitHub MCP connectors. All five
+  are needed for the full briefing. If one is missing, run the available parts and tell
+  the user what was skipped.
 references:
   - brand-voice-guide
 ---
 
 # Morning Update Skill
 
-This skill runs the daily morning briefing: sync Asana tasks into Obsidian, scan Slack
-for things that need attention, and brief on today's schedule and upcoming deadlines.
+This skill runs the daily morning briefing: sync Asana tasks and GitHub issues/PRs into
+Obsidian, scan Slack for things that need attention, and brief on today's schedule and
+upcoming deadlines.
 
 The flow is always: **gather data → present sync conflicts → get approval → update
 Obsidian → deliver briefing.** Never write to Obsidian without explicit user approval.
@@ -50,6 +51,7 @@ Read `config.json` from the plugin root to get:
 - `asana_project_id` — the MKTG Content Calendar FY27 project
 - `slack_user_id` — your Slack user ID (for DM delivery if needed)
 - `slack_channels` — array of channel names to scan
+- `github_org` — the GitHub organization to query for issues and PRs (e.g., "timescale")
 
 ---
 
@@ -141,7 +143,7 @@ For approved changes, use `obsidian_patch_content` to update `03 - Areas/Content
   and note it to the user.
 
 **Personal tasks from Slack:**
-If the Slack scan (Step 2) surfaces action items that become tasks, and those tasks are
+If the Slack scan (Step 3) surfaces action items that become tasks, and those tasks are
 personal in nature (not work-related), add `#personal` to the task line:
 ```markdown
 - [ ] Schedule dentist appointment #personal 📅 2026-03-20
@@ -153,7 +155,130 @@ providing paste-ready markdown text that the user can add manually. Don't silent
 
 ---
 
-## Step 2 — Slack Scan
+## Step 2 — GitHub/Obsidian Sync
+
+This step syncs GitHub issues assigned to the user and PRs awaiting their review into
+`03 - Areas/GitHub.md`. GitHub is the source of truth — Obsidian tracks what's on your
+plate so it flows into the Dashboard alongside Asana tasks.
+
+### 2a. Pull GitHub data
+
+Use the `github_org` value from config. Make two API calls:
+
+**Issues assigned to you:**
+Use `search_issues` with query: `assignee:@me org:{github_org} state:open`
+Sort by `updated`, order `desc`.
+
+**PRs awaiting your review:**
+Use `search_pull_requests` with query: `review-requested:@me org:{github_org} state:open`
+Sort by `updated`, order `desc`.
+
+Also query for PRs assigned to you (your own open PRs):
+Use `search_pull_requests` with query: `assignee:@me org:{github_org} state:open`
+Sort by `updated`, order `desc`.
+
+From each result, extract: `title`, `number`, `html_url`, `state`, and the repo name
+(parse from `repository_url` — it ends with `repos/{owner}/{repo}`). Also extract `labels`
+if present.
+
+### 2b. Read Obsidian GitHub note
+
+Use `obsidian_get_file_contents` to read `03 - Areas/GitHub.md`.
+
+Parse the task lists under `## Issues` and `## Review Requests`. Tasks use inline links:
+
+```markdown
+- [ ] Task title [#43](https://github.com/timescale/marketing-skills-issues/issues/43)
+```
+
+Or with an optional due date:
+```markdown
+- [ ] Task title [#43](https://github.com/timescale/marketing-skills-issues/issues/43) 📅 2026-03-20
+```
+
+Completed tasks:
+```markdown
+- [x] Task title [#43](https://github.com/timescale/marketing-skills-issues/issues/43) 📅 2026-03-20 ✅ 2026-03-22
+```
+
+Issues are grouped under repo-name headings (### level) within `## Issues`. Review
+Requests are flat under `## Review Requests` and use the format
+`[repo-name#number](url)` to identify the repo:
+
+```markdown
+- [ ] Fix caching logic [timescale/tiger-den#247](https://github.com/timescale/tiger-den/pull/247)
+```
+
+Match GitHub items to Obsidian tasks by extracting the URL from the inline markdown
+link and comparing to the `html_url` from the API.
+
+### 2c. Compare and surface conflicts
+
+Build three lists:
+
+**New in GitHub (not in Obsidian):**
+Issues or PRs that exist in GitHub but have no matching entry in GitHub.md. For each,
+show the title, repo, number, and link.
+
+**Closed in GitHub (still open in Obsidian):**
+Items marked `[ ]` or `[/]` in Obsidian but whose GitHub state is `closed`. These
+should be marked complete. Show each one.
+
+**In Obsidian but gone from GitHub (unassigned/transferred):**
+Items in Obsidian that no longer appear in the GitHub search results. These may have
+been reassigned, transferred, or the user was removed. Flag them — don't auto-remove.
+
+### 2d. Present and get approval
+
+Show all three lists. For each category:
+
+- **New issues/PRs:** "These are assigned to you in GitHub but not tracked in Obsidian.
+  Want me to add them?" For each new item, ask: **"Any due date you want to set?"**
+  If the user provides a date, include it as `📅 YYYY-MM-DD` at the end of the task
+  line (must be the LAST token). If they say no or skip, omit the due date.
+- **Closed items:** "These are closed in GitHub but still open in your GitHub note.
+  Want me to mark them done?"
+- **Gone items:** "These are in your GitHub note but no longer assigned to you in
+  GitHub. Want me to remove them, or keep tracking them?"
+
+Wait for confirmation before making changes.
+
+### 2e. Update Obsidian
+
+For approved changes, use `obsidian_patch_content` to update `03 - Areas/GitHub.md`.
+
+**Task format — Issues (grouped by repo):**
+```markdown
+### timescale/marketing-skills-issues
+- [ ] Add guard to release.yml [#43](https://github.com/timescale/marketing-skills-issues/issues/43)
+- [ ] Create PR reviewer docs [#33](https://github.com/timescale/marketing-skills-issues/issues/33) 📅 2026-03-20
+```
+
+**Task format — Review Requests (flat list):**
+```markdown
+- [ ] Fix caching logic [timescale/tiger-den#247](https://github.com/timescale/tiger-den/pull/247)
+```
+
+**Key formatting rules:**
+- Due dates use the 📅 emoji and must be the LAST token on the task line
+- The inline link `[#number](url)` or `[repo#number](url)` is both the display text
+  and the sync key — never break this format
+- New repo headings (### level) are created automatically under `## Issues` when an
+  issue appears in a repo not yet represented
+- If a repo heading has no remaining open tasks after sync, remove the empty heading
+- Use `obsidian_patch_content` with `target="GitHub::Issues"` or
+  `target="GitHub::Review Requests"` as appropriate
+
+**Marking items complete:**
+Change `- [ ]` to `- [x]` and append `✅ YYYY-MM-DD` (today's date). Keep due dates
+in their original position (before the ✅).
+
+If `obsidian_patch_content` fails, fall back to providing paste-ready markdown. Don't
+silently fail.
+
+---
+
+## Step 3 — Slack Scan
 
 Scan yesterday's messages in the configured Slack channels for anything the user needs to
 act on. The channels to scan are defined in config.json under `slack_channels`.
@@ -195,14 +320,14 @@ Keep it tight. The goal is "here's what you missed that matters" — not a trans
 
 ---
 
-## Step 3 — Today's Briefing
+## Step 4 — Today's Briefing
 
 ### In Progress tasks
 
 Before anything else, check Obsidian for any tasks currently marked `[/]` (in-progress
 status from Task Genius). Use `obsidian_simple_search` with query `[/]` or scan the
-Content Production data already loaded. Surface these first — they represent work already
-started and should be top of mind. Present as: "You have N tasks in progress: ..."
+Content Production and GitHub data already loaded. Surface these first — they represent
+work already started and should be top of mind. Present as: "You have N tasks in progress: ..."
 
 ### Focus tasks
 
@@ -220,8 +345,9 @@ ambiguous should be included).
 
 From the Asana data already pulled in Step 1, list tasks due today.
 
-Also check Obsidian for any non-Asana tasks due today — use `obsidian_simple_search` with
-today's date in 📅 format, or rely on the Content Production data already loaded.
+Also check Obsidian for any non-Asana tasks due today (including GitHub tasks with due
+dates) — use `obsidian_simple_search` with today's date in 📅 format, or rely on the
+Content Production and GitHub data already loaded.
 
 ### Due this week
 
@@ -241,17 +367,18 @@ over-format it.
 
 ---
 
-## Step 4 — Deliver the Briefing
+## Step 5 — Deliver the Briefing
 
 Present everything in a single, scannable briefing. Structure it as:
 
-1. **Task Sync Summary** — What was synced, what conflicts were found, what was updated
+1. **Task Sync Summary** — What was synced (Asana + GitHub), conflicts found, what was updated
 2. **In Progress** — Tasks currently marked `[/]` that are already underway
 3. **Slack Highlights** — Actionable items from yesterday, grouped by channel
 4. **Today's Schedule** — Calendar overview
-5. **Due Today** — Tasks due today
-6. **Due This Week** — Upcoming deadlines
+5. **Due Today** — Tasks due today (from both Asana and GitHub)
+6. **Due This Week** — Upcoming deadlines (from both Asana and GitHub)
 7. **Overdue** — Past-due items needing attention
+8. **GitHub Review Requests** — Open PRs awaiting your review (always surface these even if none are due — they're blocking someone else)
 
 Keep the tone direct and useful — this is a morning briefing, not a report. Think "chief
 of staff handing you a one-pager" not "quarterly business review."
@@ -263,7 +390,7 @@ After delivering the briefing, if there are real meetings on today's calendar, a
 > "Want me to create meeting notes for today's meetings?"
 
 If the user says yes, hand off to the **meeting-notes** skill. The calendar data already
-fetched in Step 3 can be reused — pass the events to the meeting-notes flow starting at
+fetched in Step 4 can be reused — pass the events to the meeting-notes flow starting at
 its Step 2 (filter events). This avoids a redundant calendar API call.
 
 If the user says no or doesn't respond, move on. This is a convenience offer, not a
@@ -278,8 +405,13 @@ Skip the task sync and Obsidian reads. Run Asana + Slack + Calendar portions and
 user the Obsidian sync was skipped because the connector isn't available.
 
 **Asana MCP unavailable:**
-Skip the task sync and Asana-based due date sections. Run Slack + Calendar + whatever
-Obsidian data is available. Note the gap.
+Skip the Asana task sync and Asana-based due date sections. Run GitHub sync + Slack +
+Calendar + whatever Obsidian data is available. Note the gap.
+
+**GitHub MCP unavailable:**
+Skip the GitHub sync (Step 2). Run Asana sync + Slack + Calendar + whatever Obsidian
+data is available. Note it. If GitHub.md already has tasks from a previous sync, those
+still flow into the briefing via Obsidian — just mention that the GitHub data may be stale.
 
 **Slack MCP unavailable:**
 Skip the Slack scan. Run everything else. Note it.
@@ -292,7 +424,7 @@ Great — say "Asana and Obsidian are in sync, no changes needed" and move on. D
 the briefing.
 
 **User says "skip sync" or "just brief me":**
-Skip Step 1 entirely and go straight to Slack scan + briefing.
+Skip Steps 1 and 2 entirely and go straight to Slack scan + briefing.
 
 **Weekend or no meetings:**
 Adjust the Slack scan window if it's Monday (scan Friday + weekend). If there are no
