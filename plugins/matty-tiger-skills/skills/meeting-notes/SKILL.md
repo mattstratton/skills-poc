@@ -227,13 +227,13 @@ type: person
 company: [infer from email domain — e.g., "Amazon" for @amazon.com, "TigerData" for @tigerdata.com]
 title:
 email: [their email address]
-image: https://www.clker.com/cliparts/3/c/9/0/15346636991003506792default_user.png
+image: 05 - People/images/default-avatar.png
 obsidianUIMode: preview
 ---
 
 # Full Name
 
-`="![image|200](" + this.image + ")"`
+`="![image|200](" + replace(this.image, " ", "%20") + ")"`
 
 ## Notes
 
@@ -252,6 +252,51 @@ obsidianUIMode: preview
 
 After creating People pages, update the internal people list so the subsequent meeting
 note creation uses the correct names.
+
+### Step 5b — Avatar Prompt Handoff (TigerData people only)
+
+After creating People pages, check if any of the newly created pages are for people
+with `@tigerdata.com` email addresses. These people are on the company Slack workspace,
+so their profile photos can be pulled automatically — but not from this session (the
+Obsidian MCP doesn't support binary file uploads).
+
+If there are any new TigerData People pages, generate a ready-to-paste prompt the user
+can run in a separate Cowork session with their Obsidian vault folder selected (which
+gives filesystem access to write image files directly).
+
+**Only include people who:**
+- Were just created in this run (not pre-existing People pages)
+- Have a `@tigerdata.com` email address (they'll be on Slack)
+
+**Image naming convention:** `firstname-lastname.jpg` (all lowercase, hyphenated). Match
+the existing files in `05 - People/images/` — e.g., `corey-fitz.png`, `doug-pagnutti.jpg`,
+`erin-staples.jpg`.
+
+**Format the handoff like this:**
+
+```
+I created People pages for these TigerData folks with the default avatar. To pull
+their Slack profile photos, open a new Cowork session with your Obsidian vault
+selected and paste this:
+
+---
+Find Slack profile photos for these people and save them to my Obsidian vault:
+
+- Naveen Sukumar (naveen@tigerdata.com) → 05 - People/images/naveen-sukumar.jpg
+- Kyla Kurstin (kyla@tigerdata.com) → 05 - People/images/kyla-kurstin.jpg
+
+For each person:
+1. Look them up on Slack by email using slack_read_user_profile
+2. Get their profile photo URL from the response (image_512 or image_original)
+3. Download the image with curl and save it to the path above
+4. Update the `image` field in their People page frontmatter (e.g., 05 - People/Naveen Sukumar.md)
+   to point to the new image path instead of the default avatar
+---
+```
+
+**Skip this section entirely if:**
+- No new People pages were created
+- All new People pages are for non-TigerData people (external attendees)
 
 ---
 
