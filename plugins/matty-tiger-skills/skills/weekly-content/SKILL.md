@@ -175,7 +175,49 @@ Use Tiger Den tags and title patterns for grouping instead.
 
 ---
 
-## Step 4 — Generate Both Slack Posts
+## Step 4 — Resolve Authors to Slack Users
+
+Before generating posts, resolve content authors to Slack user IDs so they can be @tagged
+in the `#content-flywheel` post. This makes the roundup more engaging and gives authors
+visibility when their content is featured.
+
+**Process:**
+
+1. Collect the unique author names from the Tiger Den results (Step 1).
+2. For each unique author, call `slack_search_users` with the author's name.
+3. Build a proposed mapping of author name → Slack user (display name + user ID). If
+   `slack_search_users` returns no match or multiple ambiguous matches for an author,
+   mark that author as "no match — will use plain text."
+4. **Show the user the proposed mapping for confirmation before proceeding.** Format it
+   clearly, e.g.:
+
+   ```
+   Author → Slack match:
+   • Doug Pagnutti → @Doug Pagnutti (U01ABC123)
+   • Matty Stratton → @Matty Stratton (U04XYZ789)
+   • Jake Hertz → no match (will use plain text)
+   ```
+
+   Ask: "Does this look right? I'll @tag matched authors in the #content-flywheel post only."
+
+5. Wait for the user to confirm or correct the mapping. If they correct an entry (e.g.
+   "Jake is actually @jake.hertz"), update accordingly.
+
+**Rules:**
+
+- Only use confirmed mappings. Never @tag someone based on an unconfirmed fuzzy match.
+- Use the `<@UXXXXXX>` Slack format (member ID) for tags — not `@Display Name`, which
+  doesn't create a real mention.
+- **Only @tag authors in the `#content-flywheel` post.** The `#sales-team` post uses plain
+  text author names — @tags are noise there and reps don't care who wrote it.
+- If all authors match the same person (e.g. the user wrote everything that week), a single
+  author credit at the top of the flywheel post is cleaner than repeating the tag per item.
+- If `slack_search_users` is unavailable or errors out, skip this step entirely and fall
+  back to plain text author names everywhere. Don't block the rest of the skill on this.
+
+---
+
+## Step 5 — Generate Both Slack Posts
 
 Generate the `#content-flywheel` post and the `#sales-team` parent + thread replies. These are
 different audiences with different needs. Don't just copy one to the other.
@@ -219,6 +261,9 @@ Rules:
 - No stage mapping
 - If a piece is a video, note it's a quick watch (give a rough duration if you can infer it from Tiger Den)
 - If all pieces are from the same author, you can group the author credit at the top instead of repeating per item
+- **Author @tags:** Use the confirmed Slack user mappings from Step 4. For matched authors,
+  use `<@UXXXXXX>` in the author credit. For unmatched authors, use plain text. Example:
+  "Written by <@U04XYZ789>" or "By <@U01ABC123> and Jake Hertz" (mixed matched/unmatched)
 
 ### `#sales-team` post — parent message + thread replies
 
@@ -310,7 +355,7 @@ Thread reply rules:
 
 ---
 
-## Step 5 — Post Drafts to Preview Channel
+## Step 6 — Post Drafts to Preview Channel
 
 Post drafts to `#test-matty-posts` so the user can check how they render in Slack (formatting,
 length, link unfurls). Use `slack_search_channels` to find the channel ID — don't hardcode it.
@@ -333,7 +378,7 @@ and I'll send everything to the real channels."
 
 ---
 
-## Step 6 — Iterate on Feedback
+## Step 7 — Iterate on Feedback
 
 If the user requests changes, make them and show the updated draft(s) in the conversation.
 Re-post to `#test-matty-posts` only if the user asks to see the updated version in Slack
@@ -341,7 +386,7 @@ Re-post to `#test-matty-posts` only if the user asks to see the updated version 
 
 ---
 
-## Step 7 — Post to Channels
+## Step 8 — Post to Channels
 
 When the user approves (says "post it", "looks good", "ship it", or similar):
 
