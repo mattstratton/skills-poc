@@ -4,7 +4,7 @@ platforms: [cowork, claude-code]
 description: >
   Generates weekly content roundup Slack posts for Tiger Data. Queries Tiger Den for
   published content in a given date range, optionally enriches with Asana metadata,
-  and drafts two Slack posts: one for #general and one for #sales-team. Posts drafts
+  and drafts two Slack posts: one for #content-flywheel and one for #sales-team. Posts drafts
   to #test-matty-posts for formatting review, then posts to the real channels on
   approval. Trigger when the user runs /weekly-content with a date range (e.g.
   /weekly-content Feb 23-27), or asks to generate the weekly content update, content
@@ -21,10 +21,14 @@ references:
 
 # Weekly Content Skill
 
-This skill generates the weekly content roundup posts for Tiger Data's `#general` and
+This skill generates the weekly content roundup posts for Tiger Data's `#content-flywheel` and
 `#sales-team` Slack channels. It uses Tiger Den as the primary source of truth for what
 was published (content text, metadata, publish dates), with optional Asana enrichment
 for editorial metadata like theme and series grouping.
+
+The `#content-flywheel` post is a single message. The `#sales-team` post uses a parent
+message + thread structure: a scannable overview in the channel with detailed per-piece
+thread replies that reps can opt into.
 
 The flow is always: **draft → DM for preview → get approval → post to channels.**
 Never post to channels without explicit user approval.
@@ -173,8 +177,8 @@ Use Tiger Den tags and title patterns for grouping instead.
 
 ## Step 4 — Generate Both Slack Posts
 
-Generate two distinct posts: one for `#general` and one for `#sales-team`. These are different
-audiences with different needs. Don't just copy one to the other.
+Generate the `#content-flywheel` post and the `#sales-team` parent + thread replies. These are
+different audiences with different needs. Don't just copy one to the other.
 
 ### Grouping logic
 
@@ -187,7 +191,7 @@ of reliability):
 If multiple pieces are clearly part of a series, introduce them as a series rather than
 treating each as isolated.
 
-### `#general` post
+### `#content-flywheel` post
 
 Audience: the whole company — engineers, product, finance, ops. Not assumed to be in sales.
 Tone: informative, brief, no sales framing.
@@ -216,12 +220,18 @@ Rules:
 - If a piece is a video, note it's a quick watch (give a rough duration if you can infer it from Tiger Den)
 - If all pieces are from the same author, you can group the author credit at the top instead of repeating per item
 
-### `#sales-team` post
+### `#sales-team` post — parent message + thread replies
 
 Audience: AEs, SAs, BDRs, and sales leadership. Assume they know the sales process
 and the customer journey framework.
 
-Format:
+The sales-team update uses a **parent message + thread** structure. The parent message
+is a scannable overview that reps can read in 30 seconds. Each piece (or series group)
+then gets its own thread reply with the full detail — summary, snippet, journey mapping,
+and how-to-use guidance. This keeps the channel readable while making the deep content
+easily accessible.
+
+#### Parent message format
 
 ```
 📚 **New Content This Week — [Date Range]**
@@ -229,9 +239,44 @@ Format:
 [1-2 sentence framing of why this week's content matters for the team — what theme it hits,
 what customer conversation it enables.]
 
+[If one piece is especially high-signal for active deals, call it out here:]
+🔥 **Highlight:** _"[Title]"_ — [1 sentence on why this one matters right now. Be specific:
+what kind of deal or conversation it unlocks.] See thread for details.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
-1️⃣ **[Title]**
+1️⃣ **[Title]** ([Content Type])
+[1 sentence summary] · Stages: [N, N] · 🧵 Details in thread
+[Published URL]
+
+2️⃣ **[Title]** ([Content Type])
+[1 sentence summary] · Stages: [N, N] · 🧵 Details in thread
+[Published URL]
+
+[Repeat for each piece or series group]
+```
+
+Parent message rules:
+- The parent must be short enough to read without scrolling on a laptop screen. If you have
+  5+ pieces, be even more aggressive with the one-liner summaries.
+- The "Stages: [N, N]" tag tells reps at a glance which sales stages the piece is relevant
+  to. Use the stage numbers from the sales-stage-framework. Only include stages that
+  genuinely apply — don't pad.
+- The highlight callout is optional — only use it when a piece is genuinely high-signal
+  (e.g. a case study that directly addresses a common objection, or content that maps to a
+  deal stage where many current opportunities are stuck). Don't force a highlight every week.
+  When you do highlight, be specific about *why* — "great for Stage 2" isn't enough, say
+  what it helps unblock.
+- If pieces form a series, group them under one numbered item in the parent (e.g.
+  "1️⃣ **[Series Name]** (3-part blog series)") with a single thread reply covering the group.
+
+#### Thread reply format (one per piece or series group)
+
+Each thread reply is posted as a reply to the parent message. This is where all the
+detail lives — reps click into the thread for pieces relevant to their deals.
+
+```
+**[Title]**
 [Content Type] · [Date] · [Author]
 
 **Summary:** [3-4 sentences. What the piece argues, what evidence/framing it uses, what the
@@ -250,37 +295,41 @@ customer evidence that Tiger Data can fix their Postgres bottleneck" (Stage 1).]
 and customer-journey-map reference docs. Be specific — what kind of prospect, what moment in
 the conversation, what gate question it helps answer, and what it helps them do. Don't just
 say "good for Stage 1" — say why and how.]
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-
-[Repeat for each piece]
 ```
 
-Rules:
-- The "Customer journey" and "How to use" sections are the most important parts of the sales-team post. Spend the most effort here.
+Thread reply rules:
+- The "Customer journey" and "How to use" sections are the most important parts. Spend the most effort here.
 - Only map to stages that genuinely apply — don't force all stages for every piece
 - Frame the customer journey mapping from the customer's perspective using the gate questions from the customer-journey-map doc
 - Reference BDR Paths where relevant for top-of-funnel content (from the stage framework doc)
 - Reference prospect personas where the content is persona-specific (from the stage framework doc)
 - If pieces are a series, note how they sequence — which to share first, which is the deeper follow-up
+- Each thread reply should stand alone — a rep reading just that one reply should get
+  everything they need without going back to the parent or other threads
 - Use Slack markdown: `**bold**` for headers and labels (double asterisks), `_italic_` for snippets, `━━━` Unicode box-drawing characters for section dividers (Slack's `---` doesn't render as a horizontal rule)
 
 ---
 
 ## Step 5 — Post Drafts to Preview Channel
 
-Post both drafts to `#test-matty-posts` as separate messages so the user can check how they
-render in Slack (formatting, length, link unfurls). Use `slack_search_channels` to find the
-channel ID — don't hardcode it. Do not post to `#general` or `#sales-team` yet.
+Post drafts to `#test-matty-posts` so the user can check how they render in Slack (formatting,
+length, link unfurls). Use `slack_search_channels` to find the channel ID — don't hardcode it.
+Do not post to `#content-flywheel` or `#sales-team` yet.
 
-Post the `#general` draft first, then the `#sales-team` draft as a separate message, so each
-can be evaluated independently.
+**Posting order:**
 
-Also show both drafts in the Claude conversation so the user can read and respond without
-switching to Slack.
+1. Post the `#content-flywheel` draft as a standalone message.
+2. Post the `#sales-team` **parent message** as a separate standalone message.
+3. Post each `#sales-team` **thread reply** as a reply to that parent message (using the
+   parent's `ts` as the thread timestamp). This lets the user see exactly how the threaded
+   structure will look in the real channel.
 
-After posting, say: "Drafts posted to #test-matty-posts so you can check formatting. Let me
-know what to change, or say 'post it' when you're ready and I'll send both to the real channels."
+Also show all drafts in the Claude conversation (parent + each thread reply, clearly labeled)
+so the user can read and respond without switching to Slack.
+
+After posting, say: "Drafts posted to #test-matty-posts — the sales-team post is threaded so
+you can check how it looks. Let me know what to change, or say 'post it' when you're ready
+and I'll send everything to the real channels."
 
 ---
 
@@ -296,12 +345,16 @@ Re-post to `#test-matty-posts` only if the user asks to see the updated version 
 
 When the user approves (says "post it", "looks good", "ship it", or similar):
 
-1. Post the `#general` draft to `#general`
-2. Post the `#sales-team` draft to `#sales-team`
-3. Confirm in the conversation: "Posted to both channels."
+1. Post the `#content-flywheel` draft to `#content-flywheel`
+2. Post the `#sales-team` **parent message** to `#sales-team`
+3. Post each `#sales-team` **thread reply** as a reply to the parent (using the parent's `ts`
+   as the thread timestamp). Post them in the same order as they appear in the parent's
+   numbered list.
+4. Confirm in the conversation: "Posted to both channels. Sales-team post has [N] thread
+   replies."
 
-**To find channel IDs:** Use `slack_search_channels` with "general" and "sales-team" to get
-the correct channel IDs before posting. Don't hardcode channel IDs.
+**To find channel IDs:** Use `slack_search_channels` with "content-flywheel" and "sales-team"
+to get the correct channel IDs before posting. Don't hardcode channel IDs.
 
 **Never post to channels without explicit user approval.** If the user goes quiet after the
 DM step, do nothing. Wait for confirmation in the conversation.
