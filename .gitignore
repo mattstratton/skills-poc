@@ -5,3 +5,6 @@ example/marketing-skills
 # They exist locally as copy-paste sources for creating Google Drive docs.
 _drive-drafts/
 references/
+
+# Local Claude settings
+.claude/settings.local.json

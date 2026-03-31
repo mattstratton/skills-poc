@@ -59,7 +59,7 @@ in a public repo.
 
 ## Current plugin
 
-**matty-tiger-skills** (v2.5.0)
+**matty-tiger-skills** (v2.7.0)
 
 Skills:
 
@@ -69,6 +69,29 @@ Skills:
 - **design-requests** — searches the Content Calendar for blog posts, creates formatted design request tasks in Asana's Marketing Design Requests project.
 - **weekly-content** — generates weekly #general and #sales-team Slack posts from published content in Tiger Den.
 - **linkedin-articles** — finds ICP-relevant articles and drafts LinkedIn posts using Tiger Den voice profiles.
+
+## Installation
+
+The plugin can disappear from Claude Code after restarts due to the
+`RemotePluginManager` wipe cycle. To install it persistently into the local
+plugin cache:
+
+```bash
+git clone https://github.com/mattstratton/skills-poc.git
+python3 skills-poc/scripts/install.py
+```
+
+If you already have the repo cloned, just run the script directly:
+
+```bash
+python3 scripts/install.py
+```
+
+This copies the plugin into `~/.claude/plugins/cache/`, registers it in
+`installed_plugins.json`, and creates an install manifest so it survives
+restarts. **Restart Claude Code after running.**
+
+Re-run the script any time you pull a new version to update the cache.
 
 ## Connectors required
 
