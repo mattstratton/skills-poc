@@ -72,7 +72,7 @@ Skills:
 
 ## Installation
 
-The plugin can disappear from Claude Code after restarts due to the
+The plugin can disappear from Cowork (Claude Desktop) after restarts due to the
 `RemotePluginManager` wipe cycle. To install it persistently into the local
 plugin cache:
 
@@ -87,11 +87,12 @@ If you already have the repo cloned, just run the script directly:
 python3 scripts/install.py
 ```
 
-This copies the plugin into `~/.claude/plugins/cache/`, registers it in
-`installed_plugins.json`, and creates an install manifest so it survives
-restarts. **Restart Claude Code after running.**
+This writes the plugin directly to the Cowork `cowork_plugins/cache/` path
+(managed by `LocalPluginsReader`), which persists across restarts unlike
+marketplace-installed plugins. **Restart Claude Desktop after running.**
 
-Re-run the script any time you pull a new version to update the cache.
+Re-run the script after `git pull` to update the cached version. Use
+`--check` to see if an update is available without installing.
 
 ## Connectors required
 
