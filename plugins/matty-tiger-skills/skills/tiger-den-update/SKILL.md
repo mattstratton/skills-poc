@@ -5,7 +5,9 @@ description: >
   Summarizes recent GitHub Releases from the timescale/tiger-den repo and posts a
   narrative briefing to #project-tiger-den on Slack. Covers product changes, new features,
   bug fixes, and includes a dedicated section for developer workflow updates (CI, skills,
-  dev tooling). Default timeframe is the last 7 days; user can specify any range.
+  dev tooling). Default timeframe is since the last update posted to #project-tiger-den
+  (falls back to 7 days if no previous update is found); user can specify any range.
+  Tags release contributors by resolving GitHub usernames to Slack users (with confirmation).
   Trigger when the user runs /tiger-den-update or says "tiger den update", "what shipped
   in tiger den", "tiger den releases", "what's new in tiger den", "den release notes",
   or "tiger den changelog". Also trigger for "what did tiger den ship this week" or similar.
@@ -25,7 +27,7 @@ The goal is NOT to copy-paste release notes. It's to help the team understand wh
 changed, why it matters, and what they should know — written like a person who read all the
 releases and is catching you up over coffee.
 
-The flow is always: **fetch releases → synthesize → draft message → get approval → post.**
+The flow is always: **fetch releases → synthesize → resolve contributors → draft message → get approval → post.**
 Never post to Slack without explicit user approval.
 
 ---
@@ -49,14 +51,30 @@ Read `config.json` from the plugin root to get:
 
 The user can provide a timeframe. Accepted formats:
 
-- `/tiger-den-update` (defaults to last 7 days)
+- `/tiger-den-update` (defaults to since last posted update — see below)
 - `/tiger-den-update last 2 weeks`
 - `/tiger-den-update March 1-15`
 - `/tiger-den-update 2026-03-01 to 2026-03-15`
 - `/tiger-den-update since last Monday`
 
-If no timeframe is provided, default to the last 7 days from today. Don't ask — just use
-the default and mention the date range in your response so the user can adjust if needed.
+### Default timeframe — since last posted update
+
+If no timeframe is provided, **automatically determine the cutoff** by finding the most
+recent Tiger Den Update message in `#project-tiger-den`:
+
+1. Use `slack_search_channels` to get the `#project-tiger-den` channel ID.
+2. Use `slack_search_public` (or `slack_search_public_and_private`) to search for messages
+   matching `":package: Tiger Den Update"` in the channel.
+3. Look at the date range in the most recent match's header line (e.g. "Tiger Den Update —
+   Mar 28 – Apr 4") and use the day **after** the end of that range as your start date.
+   Today is the end date.
+
+If no previous update is found in the channel (first run, or search returns nothing), fall
+back to the last 7 days.
+
+Don't ask — just use the resolved default and mention the date range in your response so
+the user can adjust if needed. Example: "Covering releases since the last update (Apr 5 –
+Apr 12)."
 
 ---
 
@@ -135,7 +153,58 @@ Don't include it with "no changes this period" — that's noise.
 
 ---
 
-## Step 3 — Draft the Slack Message
+## Step 3 — Resolve Contributors to Slack Users
+
+Before drafting, resolve the GitHub users who authored or are mentioned in releases to Slack
+user IDs so they can be @tagged in the posted update. This gives contributors visibility
+and makes the update feel more human.
+
+**Process:**
+
+1. Collect the unique GitHub usernames from the releases gathered in Step 1. The `author`
+   field on each release gives you the publisher. Also scan release bodies for GitHub
+   @mentions or "contributed by" credits — include those too.
+
+2. For each unique GitHub username, try to resolve them to a Slack user:
+   a. First, call `slack_search_users` with the GitHub user's display name (if available)
+      or their GitHub username.
+   b. If that doesn't return a clear match, try common variations — first name, last name,
+      or the GitHub username itself.
+
+3. Build a proposed mapping and **show it to the user for confirmation before proceeding.**
+   Format it clearly, e.g.:
+
+   ```
+   Contributor → Slack match:
+   • jhertz (Jake Hertz) → @Jake Hertz (U01ABC123)
+   • dpagnutti (Doug Pagnutti) → @Doug Pagnutti (U04XYZ789)
+   • renovate[bot] → skipped (bot)
+   • cooldev42 → no match (will use plain text)
+   ```
+
+   Ask: "Does this look right? I'll @tag matched contributors in the update. Any corrections?"
+
+4. Wait for the user to confirm or correct the mapping. If they provide a correction (e.g.
+   "cooldev42 is actually @casey.jones"), update accordingly.
+
+**Rules:**
+
+- Only use confirmed mappings. Never @tag someone based on an unconfirmed fuzzy match.
+- Use the `<@UXXXXXX>` Slack format (member ID) for tags — not `@Display Name`, which
+  doesn't create a real mention.
+- Skip bot accounts (e.g. `renovate[bot]`, `dependabot[bot]`) — no need to tag bots.
+- **Tag each contributor at least once, but not every single time they appear.** If someone
+  authored 5 of the 8 releases, tag them once in the section where their most notable
+  contribution is mentioned, then use plain text for subsequent mentions. This keeps the
+  message readable without turning it into a wall of notifications.
+- If `slack_search_users` is unavailable or errors out, skip this step entirely and fall
+  back to plain text GitHub usernames. Don't block the rest of the skill on this.
+- If all releases are by the same person, a single contributor credit works fine — no need
+  to repeat.
+
+---
+
+## Step 4 — Draft the Slack Message
 
 Write a single Slack message for `#project-tiger-den`. This is a narrative briefing, not
 a changelog dump.
@@ -191,7 +260,21 @@ with blank lines between them rather than one dense block.]
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
 _Covers releases [earliest tag] through [latest tag] · [N] releases total_
+_Contributors: <@U01ABC123>, <@U04XYZ789>, cooldev42_
 ```
+
+### Contributor tagging in the message
+
+- Use the confirmed Slack mappings from Step 3 to @tag contributors **inline** within the
+  thematic group paragraphs where their most notable contribution is mentioned. Example:
+  "Search got a major overhaul from <@U01ABC123> — fuzzy matching is now…"
+- Tag each contributor **at least once** but not every time. If someone shows up in every
+  group, one inline mention is enough.
+- Include a contributors line at the bottom (shown in the format above) that lists everyone
+  who shipped in the period. This is the "credits roll" — use Slack `<@UXXXXXX>` for
+  resolved users and plain text GitHub usernames for unresolved ones.
+- If all releases are from the same person, skip the bottom credits line and just tag them
+  once inline — a solo credits line feels weird.
 
 ### Formatting rules
 
@@ -225,7 +308,7 @@ _Covers releases [earliest tag] through [latest tag] · [N] releases total_
 
 ---
 
-## Step 4 — Present Draft for Approval
+## Step 5 — Present Draft for Approval
 
 Show the full draft message in the conversation. Also mention:
 - How many releases were covered
@@ -239,7 +322,7 @@ the updated draft. Repeat until they're happy.
 
 ---
 
-## Step 5 — Post to Slack
+## Step 6 — Post to Slack
 
 When the user approves (says "post it", "looks good", "ship it", "send it", or similar):
 
