@@ -358,8 +358,13 @@ Thread reply rules:
 ## Step 6 — Post Drafts to Preview Channel
 
 Post drafts to `#test-matty-posts` so the user can check how they render in Slack (formatting,
-length, link unfurls). Use `slack_search_channels` to find the channel ID — don't hardcode it.
-Do not post to `#content-flywheel` or `#sales-team` yet.
+length, link unfurls). Do not post to `#content-flywheel` or `#sales-team` yet.
+
+**Finding the preview channel ID:** First check `config.json` for a `slack_channel_ids` object
+(e.g. `"slack_channel_ids": { "test-matty-posts": "C0AHRCTTME1" }`). If the key exists, use
+that ID directly — skip the search entirely. Only fall back to `slack_search_channels` if the
+key is missing. `#test-matty-posts` is a private channel and won't appear in search results,
+so the config lookup is the reliable path.
 
 **Posting order:**
 
@@ -398,8 +403,10 @@ When the user approves (says "post it", "looks good", "ship it", or similar):
 4. Confirm in the conversation: "Posted to both channels. Sales-team post has [N] thread
    replies."
 
-**To find channel IDs:** Use `slack_search_channels` with "content-flywheel" and "sales-team"
-to get the correct channel IDs before posting. Don't hardcode channel IDs.
+**To find channel IDs:** Check `config.json` for a `slack_channel_ids` object first — use any
+IDs stored there directly. For channels not in config, use `slack_search_channels`. Public
+channels like `#content-flywheel` and `#sales-team` are searchable; private channels (like
+`#test-matty-posts`) are not, which is exactly why the config lookup exists.
 
 **Never post to channels without explicit user approval.** If the user goes quiet after the
 DM step, do nothing. Wait for confirmation in the conversation.

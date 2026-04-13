@@ -13,7 +13,6 @@
     "#marketing",
     "#marketing-web",
     "#leads-management-team",
-    "#leads-marketing",
     "#team-devrel",
     "#docs-restructuring",
     "#marketing-community",
@@ -23,7 +22,18 @@
     "#marketing-tools-feedback",
     "#partner-clipt",
     "#project-docs-education",
-    "#sales-team"
+    "#project-tiger-den"
   ],
+  "slack_channel_ids": {
+    "test-matty-posts": "C0AHRCTTME1",
+    "team-devrel-private": "C09PA7MDYD7",
+    "marketing-leadership": "C09FH2A8SSJ",
+    "marketing-private": "GP69EAX9B",
+    "marketing-skills-private": "C0AG0BQFM09",
+    "leads-management-team": "C06U3F5JZCK",
+    "marketing-datatalks": "C09GS8HJ8BT",
+    "partner-clipt": "C073VNZ4C3E",
+    "sales-team": "C04NDM6BA5A"
+  },
   "github_org": "timescale"
 }
