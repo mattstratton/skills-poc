@@ -108,60 +108,149 @@ Call `navigate` with this URL.
 
 ## Step 5 — Extract posts and comments
 
-LinkedIn lazy-loads the activity feed. Before extracting, scroll a few times to trigger loading of posts within the time window.
+LinkedIn lazy-loads the activity feed AND hides comments behind a "N comments" button on each post. You have to scroll to load posts, then click each post's comment counter to expand the comments inline, then (optionally) click "Load more comments" / "Load previous comments" to get the full thread.
+
+**Important:** comments are NOT inline on the activity page by default. Scrolling alone gets you post previews only, not comment text.
 
 ### 5a. Scroll to load enough history
 
-Use `javascript_tool` to scroll. A reasonable heuristic: scroll until you've loaded enough posts to cover the time window, capped at ~10 scrolls. Something like:
+Use `javascript_tool`. Exit early if scroll height stops growing (you've hit the bottom):
 
 ```javascript
 (async () => {
+  const delay = (ms) => new Promise(r => setTimeout(r, ms));
+  let lastHeight = document.body.scrollHeight;
   for (let i = 0; i < 10; i++) {
     window.scrollTo(0, document.body.scrollHeight);
-    await new Promise(r => setTimeout(r, 1500));
+    await delay(1500);
+    const newHeight = document.body.scrollHeight;
+    if (newHeight === lastHeight) break;
+    lastHeight = newHeight;
   }
-  return 'done';
+  return `final height ${lastHeight}`;
 })();
 ```
 
-### 5b. Expand collapsed comments
+### 5b. Expand comment sections
 
-LinkedIn collapses older comments behind "Load N more comments" and "See more replies" buttons. Click them all. Use `javascript_tool`:
+First, click each post's "N comments" button to expand comments inline. Then click any "Load more / Load previous comments" buttons that appear:
 
 ```javascript
 (async () => {
-  const clickAll = () => {
-    const buttons = Array.from(document.querySelectorAll('button'));
-    const clicked = buttons.filter(b => {
-      const text = (b.textContent || '').toLowerCase();
-      return text.includes('load more comments') ||
-             text.includes('see more comments') ||
-             text.includes('show more comments') ||
-             text.includes('more replies');
+  const delay = (ms) => new Promise(r => setTimeout(r, ms));
+  // Phase 1: click the "N comments" counter buttons on each post
+  const counters = Array.from(document.querySelectorAll('button')).filter(b => {
+    if (b.disabled || b.offsetParent === null) return false;
+    return /^\d+\s+comments?$/i.test((b.textContent || '').trim());
+  });
+  counters.forEach(b => { try { b.click(); } catch(e) {} });
+  await delay(2500);
+  // Phase 2: click "Load more / previous comments" and "more replies" buttons
+  let loadedMore = 0;
+  for (let i = 0; i < 6; i++) {
+    const more = Array.from(document.querySelectorAll('button')).filter(b => {
+      if (b.disabled || b.offsetParent === null) return false;
+      const t = (b.textContent || '').toLowerCase().trim();
+      return t.includes('load more comments') ||
+             t.includes('load previous comments') ||
+             t.includes('show more comments') ||
+             t.includes('see more replies') ||
+             t.includes('more replies');
     });
-    clicked.forEach(b => b.click());
-    return clicked.length;
-  };
-  let total = 0;
-  for (let i = 0; i < 8; i++) {
-    const n = clickAll();
-    total += n;
-    if (n === 0) break;
-    await new Promise(r => setTimeout(r, 1200));
+    if (more.length === 0) break;
+    more.forEach(b => { try { b.click(); } catch(e) {} });
+    loadedMore += more.length;
+    await delay(1500);
   }
-  return `expanded ${total} comment sections`;
+  return `clicked ${counters.length} counters, ${loadedMore} load-more buttons`;
 })();
 ```
 
-### 5c. Read and extract
+### 5c. Extract with targeted DOM selectors
 
-Use `read_page` with a targeted prompt rather than brittle DOM selectors. LinkedIn mangles class names but the page's accessible text structure is stable enough for extraction:
+LinkedIn's DOM uses stable `.comments-*` class names. These were verified working in April 2026 — if they stop working, LinkedIn shipped a UI change and this step needs updating. Extract post-by-post (one post per `javascript_tool` call) to avoid hitting the ~3500-char tool output limit.
 
-> "Extract all posts authored by the current profile owner on this page, along with their comments. For each post, return: the post's permalink URL (from the post timestamp link), the post's first ~150 characters of text as a preview, the relative timestamp shown on LinkedIn (e.g., '2d', '1w'), and a list of all visible comments on that post. For each comment, include: commenter's full name, commenter's title/subtitle if shown, the comment text in full, and the comment's relative timestamp. Skip posts the current user only reshared without adding commentary. Skip reactions (likes, etc.) — only return actual text comments. Return structured data I can parse."
+**Verified selectors (April 2026):**
+- Post containers: `div.feed-shared-update-v2` or `[data-urn*="urn:li:activity"]`
+- Post author name: `.update-components-actor__title span[dir="ltr"]` or `.update-components-actor__name`
+- Post body: `.update-components-text` or `.update-components-update-v2__commentary`
+- Comment containers: `.comments-comment-entity` (NOT the older `.comments-comment-item`)
+- Commenter name: `.comments-comment-meta__description-title`
+- Commenter subtitle: `.comments-comment-meta__description-subtitle`
+- Comment text: `.comments-comment-item__main-content .update-components-text` (with fallback to just `.update-components-text` inside the entity)
+- Comment timestamp: `.comments-comment-meta__data time` or `time`
+
+**Output sanitization — required to avoid "[BLOCKED: Cookie/query string data]":** LinkedIn embeds tracking URLs and long tokens in comment text and attributes. Strip them before returning output from `javascript_tool`:
+
+```javascript
+const sanitize = (s) => !s ? '' : s
+  .replace(/https?:\/\/\S+/g, '[link]')
+  .replace(/[A-Za-z0-9+\/=]{80,}/g, '[long-token]');
+```
+
+**First pass — get a summary of all posts + comment counts.** This avoids truncation and gives you a list to iterate:
+
+```javascript
+(() => {
+  const sanitize = (s) => !s ? '' : s.replace(/https?:\/\/\S+/g, '[link]').replace(/[A-Za-z0-9+\/=]{80,}/g, '[long-token]');
+  const posts = Array.from(document.querySelectorAll('div.feed-shared-update-v2, [data-urn*="urn:li:activity"]'));
+  const seen = new Set(); const unique = [];
+  posts.forEach(p => {
+    const urn = p.getAttribute('data-urn') || p.getAttribute('data-id');
+    if (urn && !seen.has(urn)) { seen.add(urn); unique.push(p); }
+  });
+  // Filter to only the user's own posts. Replace "MATTY STRATTON" with the user's name.
+  const mine = unique.filter(post => {
+    const ae = post.querySelector('.update-components-actor__title span[dir="ltr"], .update-components-actor__name');
+    return ae && /^matty\s+stratton/i.test(ae.textContent.trim().split('\n')[0].trim());
+  });
+  // Cache on window so later calls can fetch individual posts
+  window.__mattyPosts = mine;
+  return JSON.stringify(mine.map((post, i) => {
+    const urn = post.getAttribute('data-urn') || post.getAttribute('data-id') || '';
+    const te = post.querySelector('time, .update-components-actor__sub-description');
+    const ts = te ? (te.textContent || '').trim().split('\n')[0].trim().slice(0,20) : '';
+    const be = post.querySelector('.update-components-text, .update-components-update-v2__commentary');
+    const body = be ? be.textContent.trim().replace(/\s+/g, ' ').slice(0, 100) : '';
+    const entities = post.querySelectorAll('.comments-comment-entity');
+    const nonSelfCount = Array.from(entities).filter(c => {
+      const nel = c.querySelector('.comments-comment-meta__description-title');
+      const n = nel ? nel.textContent.trim().split('\n')[0].trim() : '';
+      // Filter out the user's own comments on their own posts (self follow-ups)
+      return n && !/^matty\s+stratton$/i.test(n);
+    }).length;
+    return { i, urnTail: urn.split(':').pop(), ts: sanitize(ts), body: sanitize(body), nonSelfComments: nonSelfCount };
+  }), null, 2);
+})();
+```
+
+**Second pass — for each post with non-self comments inside the time window, fetch that post's comments individually:**
+
+```javascript
+(() => {
+  const sanitize = (s) => !s ? '' : s.replace(/https?:\/\/\S+/g, '[link]').replace(/[A-Za-z0-9+\/=]{80,}/g, '[long-token]');
+  const post = window.__mattyPosts[POST_INDEX_HERE];  // replace POST_INDEX_HERE
+  const comments = Array.from(post.querySelectorAll('.comments-comment-entity')).map(c => {
+    const nel = c.querySelector('.comments-comment-meta__description-title');
+    const name = nel ? nel.textContent.trim().split('\n')[0].trim() : '';
+    const sel = c.querySelector('.comments-comment-meta__description-subtitle');
+    const sub = sel ? sel.textContent.trim().replace(/\s+/g, ' ').slice(0, 80) : '';
+    const tel = c.querySelector('.comments-comment-item__main-content .update-components-text') ||
+                c.querySelector('.update-components-text');
+    const text = tel ? tel.textContent.trim().replace(/\s+/g, ' ') : '';
+    const timeEl = c.querySelector('.comments-comment-meta__data time, time');
+    const time = timeEl ? (timeEl.textContent || '').trim() : '';
+    return { name: sanitize(name), subtitle: sanitize(sub), text: sanitize(text), time: sanitize(time) };
+  }).filter(c => c.text && c.name && !/^matty\s+stratton$/i.test(c.name));
+  return JSON.stringify(comments, null, 2);
+})();
+```
 
 ### 5d. Filter by time window
 
-Convert each post's relative timestamp (e.g., "3d", "1w") to an approximate absolute date and drop posts older than `cutoff_date`. Err on the side of including — if a timestamp is ambiguous, include the post.
+Convert each post's relative timestamp (e.g., "3d", "1w") to an approximate absolute date and drop posts older than `cutoff_date`. Err on the side of including. For posts with 0 non-self comments, skip them (nothing to reply to).
+
+**Replace the hardcoded name filter** — the snippet above uses `matty\s+stratton` as the self-filter regex. That's fine for Matty, but if you're adapting this skill for a different user, the name has to come from somewhere (profile page scrape, config field, or the page title which is `<firstname> <lastname> | LinkedIn`). For now, the skill is personalized for Matty and this is intentional.
 
 Also drop posts with zero text comments (reactions only). We're here to draft replies, not celebrate likes.
 
