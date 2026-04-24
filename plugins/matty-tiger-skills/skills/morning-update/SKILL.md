@@ -1,6 +1,6 @@
 ---
 name: morning-update
-platforms: [cowork]
+platforms: [cowork, claude-code]
 description: >
   Daily morning briefing that syncs tasks from Asana and GitHub to Obsidian, scans
   yesterday's Slack for action items, and briefs on what's due today and this week.
@@ -8,9 +8,11 @@ description: >
   "start my day", "what's on my plate", or pastes the morning routine prompt from their
   daily note.
 compatibility: >
-  Requires Asana, Obsidian, Slack, Google Calendar, and GitHub MCP connectors. All five
-  are needed for the full briefing. If one is missing, run the available parts and tell
-  the user what was skipped.
+  Obsidian MCP is REQUIRED — the skill will not run without it. Asana, Slack, and Google
+  Calendar MCPs are needed for full coverage; if missing, those sections are skipped with
+  a note. GitHub data is fetched via the `gh` CLI when running in Claude Code (Bash tool
+  available), or via GitHub MCP when running in cowork; if neither is available, the
+  GitHub sync is skipped.
 references:
   - brand-voice-guide
 ---
@@ -26,9 +28,25 @@ Obsidian → deliver briefing.** Never write to Obsidian without explicit user a
 
 ---
 
-## Step 0 — Load Context
+## Step 0 — Preflight Check + Load Context
 
-Before doing anything else, load two context sources:
+### Obsidian MCP (hard gate)
+
+Before doing anything else, verify the Obsidian MCP is available by attempting to call
+`obsidian_get_file_contents` on `00 - System/Claude Context.md`. If the call fails or
+the tool does not exist, **stop immediately** — do not proceed to any other step. Tell
+the user:
+
+> "This skill requires the Obsidian MCP and it isn't available in this session. To fix
+> this:
+> - **Claude Code:** add the Obsidian MCP server to `~/.claude/settings.json` under
+>   `mcpServers` (stdio MCP — not the Desktop app config)
+> - **claude.ai cowork:** connect it in your claude.ai integrations settings"
+
+Do not run a partial briefing. Do not skip ahead to Slack or calendar. Stop here.
+
+If the call succeeds, internalize the context silently (don't summarize it back) and
+continue.
 
 ### Personal context (memory layer)
 
@@ -163,23 +181,34 @@ plate so it flows into the Dashboard alongside Asana tasks.
 
 ### 2a. Pull GitHub data
 
-Use the `github_org` value from config. Make two API calls:
+Use the `github_org` value from config. How you fetch the data depends on your context:
 
-**Issues assigned to you:**
-Use `search_issues` with query: `assignee:@me org:{github_org} state:open`
-Sort by `updated`, order `desc`.
+**If the Bash tool is available (Claude Code):**
+Use the `gh` CLI. Run these three commands:
 
-**PRs awaiting your review:**
-Use `search_pull_requests` with query: `review-requested:@me org:{github_org} state:open`
-Sort by `updated`, order `desc`.
+```bash
+# Issues assigned to you
+gh search issues --assignee @me --owner {github_org} --state open --json number,title,url,repository,labels --limit 50
 
-Also query for PRs assigned to you (your own open PRs):
-Use `search_pull_requests` with query: `assignee:@me org:{github_org} state:open`
-Sort by `updated`, order `desc`.
+# PRs awaiting your review
+gh search prs --review-requested @me --owner {github_org} --state open --json number,title,url,repository,labels --limit 50
 
-From each result, extract: `title`, `number`, `html_url`, `state`, and the repo name
-(parse from `repository_url` — it ends with `repos/{owner}/{repo}`). Also extract `labels`
-if present.
+# Your own open PRs
+gh search prs --assignee @me --owner {github_org} --state open --json number,title,url,repository,labels --limit 50
+```
+
+**If the Bash tool is NOT available (cowork):**
+Use GitHub MCP tools if available:
+- `search_issues` with query: `assignee:@me org:{github_org} state:open`, sort by `updated` desc
+- `search_pull_requests` with query: `review-requested:@me org:{github_org} state:open`, sort by `updated` desc
+- `search_pull_requests` with query: `assignee:@me org:{github_org} state:open`, sort by `updated` desc
+
+**If neither is available:**
+Skip Step 2 entirely. Note it in the briefing: "GitHub sync skipped — no `gh` CLI or
+GitHub MCP available." GitHub is not a hard gate; the briefing can proceed without it.
+
+From each result, extract: `title`, `number`, `html_url` (or `url`), `state`, and the
+repo name. Also extract `labels` if present.
 
 ### 2b. Read Obsidian GitHub note
 
@@ -400,18 +429,18 @@ required step.
 
 ## Edge Cases
 
-**Obsidian MCP unavailable:**
-Skip the task sync and Obsidian reads. Run Asana + Slack + Calendar portions and tell the
-user the Obsidian sync was skipped because the connector isn't available.
+**Obsidian MCP unavailable (HARD STOP):**
+Do not proceed. See the preflight check in Step 0 for the exact stop message and setup
+instructions. This is not a graceful degradation — Obsidian is the core of this skill.
 
 **Asana MCP unavailable:**
 Skip the Asana task sync and Asana-based due date sections. Run GitHub sync + Slack +
 Calendar + whatever Obsidian data is available. Note the gap.
 
-**GitHub MCP unavailable:**
-Skip the GitHub sync (Step 2). Run Asana sync + Slack + Calendar + whatever Obsidian
-data is available. Note it. If GitHub.md already has tasks from a previous sync, those
-still flow into the briefing via Obsidian — just mention that the GitHub data may be stale.
+**GitHub unavailable (no `gh` CLI and no GitHub MCP):**
+Skip Step 2 entirely. Note it in the briefing. If GitHub.md already has tasks from a
+previous sync, those still flow into the briefing via Obsidian — mention the data may
+be stale.
 
 **Slack MCP unavailable:**
 Skip the Slack scan. Run everything else. Note it.
