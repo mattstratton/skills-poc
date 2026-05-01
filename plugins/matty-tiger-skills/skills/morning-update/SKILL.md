@@ -50,10 +50,8 @@ continue.
 
 ### Personal context (memory layer)
 
-Read `00 - System/Claude Context.md` from the Obsidian vault using `obsidian_get_file_contents`.
-This is the memory layer — it tells you who Matty is, his team, shorthand, active projects,
-and preferences. Internalize it silently (don't summarize it back). This is the **context-loader**
-skill's load mode, inlined here to avoid a separate skill invocation.
+Run the **context-loader** skill in load mode. This searches Memory Engine first, with
+Obsidian as fallback. Internalize silently — do not summarize back to the user.
 
 ### Vault system rules
 
@@ -174,6 +172,13 @@ providing paste-ready markdown text that the user can add manually. Don't silent
 ---
 
 ## Step 2 — GitHub/Obsidian Sync
+
+Before doing anything in this step, ask the user:
+
+> "Want me to sync GitHub too, or skip straight to Slack?"
+
+If they say no / skip / anything in that direction — jump directly to Step 3. Do not
+make any GitHub API calls or read any GitHub-related Obsidian files.
 
 This step syncs GitHub issues assigned to the user and PRs awaiting their review into
 `03 - Areas/GitHub.md`. GitHub is the source of truth — Obsidian tracks what's on your

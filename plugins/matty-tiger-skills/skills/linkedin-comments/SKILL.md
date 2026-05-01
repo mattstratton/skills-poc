@@ -50,7 +50,9 @@ If they say yes, proceed without voice context. Keep replies short, direct, and 
 
 ### Personal context (optional)
 
-If the Obsidian MCP is available, read `00 - System/Claude Context.md` silently. This helps recognize names in comments (team members, known community people). If Obsidian isn't available, skip — not critical for this skill.
+If Memory Engine or Obsidian is available, run the **context-loader** skill in load mode.
+This helps recognize names in comments (team members, known community people). If both
+are unavailable, skip — not critical for this skill.
 
 ---
 

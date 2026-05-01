@@ -25,9 +25,8 @@ This skill handles the "last mile" after a piece of content (blog post, LinkedIn
 
 ### Personal context (memory layer)
 
-Read `00 - System/Claude Context.md` from the Obsidian vault using `obsidian_get_file_contents`.
-This is the memory layer — team, key people, shorthand, active projects. Internalize it
-silently (don't summarize it back).
+Run the **context-loader** skill in load mode. This searches Memory Engine first, with
+Obsidian as fallback. Internalize silently — do not summarize back to the user.
 
 ### Config values
 
